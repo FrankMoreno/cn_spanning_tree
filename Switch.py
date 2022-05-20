@@ -40,6 +40,7 @@ class Switch(StpSwitch):
         self.distance: int  = 0
         self.activeLinks: Set[int] = self.links
         self.inPath: bool = True
+        self.rootNeighbor: int = -1
 
 
     def send_initial_messages(self):
