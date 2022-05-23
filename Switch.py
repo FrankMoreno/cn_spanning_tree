@@ -38,16 +38,15 @@ class Switch(StpSwitch):
         # TODO: Define a data structure to keep track of which links are part of / not part of the spanning tree.
         self.claimedRoot: int = self.switchID
         self.distance: int  = 0
-        self.activeLinks: Set[int] = self.links
-        self.inPath: bool = True
-        self.rootNeighbor: int = -1
-
+        self.inPath: bool = False
+        self.rootNeighbor: int = self.switchID
+        self.activeLinks: List[int] = []
 
     def send_initial_messages(self):
         # TODO: This function needs to create and send the initial messages from this switch.
         #      Messages are sent via the superclass method send_message(Message msg) - see Message.py.
         #      Use self.send_message(msg) to send this.  DO NOT use self.topology.send_message(msg)
-        for link in self.activeLinks:
+        for link in self.links:
             self.send_message(Message(self.claimedRoot, self.distance, self.switchID, link, self.inPath))
         return
 
@@ -57,13 +56,12 @@ class Switch(StpSwitch):
         if message.root < self.claimedRoot:
             self.claimedRoot = message.root
             self.distance = message.distance + 1
+            self.rootNeighbor = message.origin
+            self.activeLinks.append(message.origin)
+            self.send_message(Message(self.claimedRoot, self.distance, self.switchID, message.origin, self.inPath))
+        if message.root == self.claimedRoot:
+            self.activeLinks.append(message.origin)
         
-        for link in self.activeLinks:
-            print(f'Node {self.switchID} sending message:\n \
-            Current Root: {self.claimedRoot}\n \
-            Distance To Root: {self.distance}\n \
-            Destination ID: {link}\n')
-            self.send_message(Message(self.claimedRoot, self.distance, self.switchID, link, self.inPath))
         return
 
     def generate_logstring(self):
@@ -80,8 +78,9 @@ class Switch(StpSwitch):
         #      A full example of a valid output file is included (sample_output.txt) with the project skeleton.
                 # print(f'Node {self.switchID} recieved message:\n \
         print(f'Current node: {self.switchID}')
-        for link in self.activeLinks:
-            print(f'{link}')
+        print(f'Claimed Root: {self.claimedRoot}')
+        print(f'Neighbor Root: {self.rootNeighbor}')
+        print(f'Active Links: {self.activeLinks}')
         return "switch log string, do not return a static string, build the log string"
     
 
