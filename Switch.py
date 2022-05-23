@@ -40,7 +40,7 @@ class Switch(StpSwitch):
         self.distance: int  = 0
         self.inPath: bool = False
         self.rootNeighbor: int = self.switchID
-        self.activeLinks: List[int] = []
+        self.activeLinks: Set[int] = set()
 
     def send_initial_messages(self):
         # TODO: This function needs to create and send the initial messages from this switch.
@@ -57,11 +57,34 @@ class Switch(StpSwitch):
             self.claimedRoot = message.root
             self.distance = message.distance + 1
             self.rootNeighbor = message.origin
-            self.activeLinks.append(message.origin)
-            self.send_message(Message(self.claimedRoot, self.distance, self.switchID, message.origin, self.inPath))
-        if message.root == self.claimedRoot:
-            self.activeLinks.append(message.origin)
-        
+            self.activeLinks.add(message.origin)
+            # self.inPath = True
+            # self.send_message(Message(self.claimedRoot, self.distance, self.switchID, message.origin, self.inPath))
+        elif message.root == self.claimedRoot:
+            if message.pathThrough:
+                self.activeLinks.add(message.origin)
+
+            if message.distance + 1 < self.distance:
+                self.activeLinks.remove(self.rootNeighbor)
+                self.rootNeighbor = message.origin
+                self.distance = message.distance + 1
+                self.activeLinks.add(message.origin)
+            elif message.distance + 1 == self.distance and message.origin < self.rootNeighbor:
+                self.activeLinks.remove(self.rootNeighbor)
+                self.rootNeighbor = message.origin
+                self.activeLinks.add(message.origin)
+        #     self.activeLinks.append(message.origin)
+        if self.switchID == 4:
+            print(f'Current node: {self.switchID}')
+            print(f'Claimed Root: {self.claimedRoot}')
+            print(f'Neighbor Root: {self.rootNeighbor}')
+            print(f'Active Links: {self.activeLinks}')
+            print(f'Distance: {self.distance}')
+        for link in self.links:
+            if link == self.rootNeighbor:
+                self.send_message(Message(self.claimedRoot, self.distance, self.switchID, message.origin, True))
+            else:
+                self.send_message(Message(self.claimedRoot, self.distance, self.switchID, message.origin, False))
         return
 
     def generate_logstring(self):
