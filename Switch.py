@@ -58,7 +58,7 @@ class Switch(StpSwitch):
             if message.origin != self.rootNeighbor:
                 self.activeLinks.discard(message.origin)
 
-        newDistance = message.distance + 1
+        newDistance: int = message.distance + 1
 
         # Found smaller root
         if message.root < self.claimedRoot:
