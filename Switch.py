@@ -51,11 +51,10 @@ class Switch(StpSwitch):
     def process_message(self, message: Message):
         # TODO: This function needs to accept an incoming message and process it accordingly.
         #      This function is called every time the switch receives a new message.
-        if message.pathThrough:
+        if message.pathThrough or message.origin == self.rootNeighbor:
             self.activeLinks.add(message.origin)
         else:
-            if message.origin != self.rootNeighbor:
-                self.activeLinks.discard(message.origin)
+            self.activeLinks.discard(message.origin)
 
         newDistance: int = message.distance + 1
 
