@@ -37,9 +37,8 @@ class Switch(StpSwitch):
 
         # TODO: Define a data structure to keep track of which links are part of / not part of the spanning tree.
         self.claimedRoot: int = self.switchID
-        self.distance: int  = 0
-        self.inPath: bool = False
-        self.rootNeighbor: int = self.switchID
+        self.distance: int = 0
+        self.rootNeighbor: int = None
         self.activeLinks: Set[int] = set()
 
     def send_initial_messages(self):
@@ -47,45 +46,51 @@ class Switch(StpSwitch):
         #      Messages are sent via the superclass method send_message(Message msg) - see Message.py.
         #      Use self.send_message(msg) to send this.  DO NOT use self.topology.send_message(msg)
         for link in self.links:
-            self.send_message(Message(self.claimedRoot, self.distance, self.switchID, link, self.inPath))
+            self.send_message(Message(self.claimedRoot, self.distance, self.switchID, link, False))
         return
 
     def process_message(self, message: Message):
         # TODO: This function needs to accept an incoming message and process it accordingly.
         #      This function is called every time the switch receives a new message.
+        if message.pathThrough:
+            self.activeLinks.add(message.origin)
+        else:
+            if message.origin != self.rootNeighbor:
+                self.activeLinks.discard(message.origin)
+
+        newDistance = message.distance + 1
+
+        # Found smaller root
         if message.root < self.claimedRoot:
             self.claimedRoot = message.root
-            self.distance = message.distance + 1
+            self.distance = newDistance
             self.rootNeighbor = message.origin
             self.activeLinks.add(message.origin)
-            # self.inPath = True
-            # self.send_message(Message(self.claimedRoot, self.distance, self.switchID, message.origin, self.inPath))
+            self.sendNeighborUpdates()
         elif message.root == self.claimedRoot:
-            if message.pathThrough:
-                self.activeLinks.add(message.origin)
+            # Found shorter path to roots
+            if newDistance < self.distance:
+                self.distance = newDistance
+                self.updateRootNeighbor(message.origin)
+                self.sendNeighborUpdates()
+            # Found path to root with smaller ID
+            elif newDistance == self.distance and message.origin < self.rootNeighbor:
+                self.updateRootNeighbor(message.origin)
+                self.sendNeighborUpdates()
 
-            if message.distance + 1 < self.distance:
-                self.activeLinks.remove(self.rootNeighbor)
-                self.rootNeighbor = message.origin
-                self.distance = message.distance + 1
-                self.activeLinks.add(message.origin)
-            elif message.distance + 1 == self.distance and message.origin < self.rootNeighbor:
-                self.activeLinks.remove(self.rootNeighbor)
-                self.rootNeighbor = message.origin
-                self.activeLinks.add(message.origin)
-        #     self.activeLinks.append(message.origin)
-        if self.switchID == 4:
-            print(f'Current node: {self.switchID}')
-            print(f'Claimed Root: {self.claimedRoot}')
-            print(f'Neighbor Root: {self.rootNeighbor}')
-            print(f'Active Links: {self.activeLinks}')
-            print(f'Distance: {self.distance}')
+        return
+    
+    def updateRootNeighbor(self, newRoot: int):
+        self.activeLinks.remove(self.rootNeighbor)
+        self.rootNeighbor = newRoot
+        self.activeLinks.add(newRoot)
+    
+    def sendNeighborUpdates(self):
         for link in self.links:
             if link == self.rootNeighbor:
-                self.send_message(Message(self.claimedRoot, self.distance, self.switchID, message.origin, True))
+                self.send_message(Message(self.claimedRoot, self.distance, self.switchID, link, True))
             else:
-                self.send_message(Message(self.claimedRoot, self.distance, self.switchID, message.origin, False))
-        return
+                self.send_message(Message(self.claimedRoot, self.distance, self.switchID, link, False))
 
     def generate_logstring(self):
         # TODO: This function needs to return a logstring for this particular switch.  The
@@ -99,16 +104,4 @@ class Switch(StpSwitch):
         #      for switch 2 would have the following text:
         #      2 - 1, 2 - 3
         #      A full example of a valid output file is included (sample_output.txt) with the project skeleton.
-                # print(f'Node {self.switchID} recieved message:\n \
-        print(f'Current node: {self.switchID}')
-        print(f'Claimed Root: {self.claimedRoot}')
-        print(f'Neighbor Root: {self.rootNeighbor}')
-        print(f'Active Links: {self.activeLinks}')
-        return "switch log string, do not return a static string, build the log string"
-    
-
-        # if self.switchID == 4:
-        #     print(f'Node {self.switchID} recieved message:\n \
-        #     Current Root: {self.claimedRoot}\n \
-        #     Distance To Root: {self.distance}\n \
-        #     Origin ID: {message.origin}\n')
+        return ", ".join(['{origin} - {link}'.format(origin=self.switchID, link=link) for link in sorted(self.activeLinks)])
