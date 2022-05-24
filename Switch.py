@@ -22,7 +22,6 @@
 # Copyright 2016 Michael Brown, updated by Kelly Parks
 #           Based on prior work by Sean Donovan, 2015, updated for new VM by Jared Scott and James Lohse
 
-from typing import List, Set
 from Message import *
 from StpSwitch import *
 
@@ -81,7 +80,7 @@ class Switch(StpSwitch):
         return
     
     def updateRootNeighbor(self, newRoot: int):
-        self.activeLinks.remove(self.rootNeighbor)
+        self.activeLinks.discard(self.rootNeighbor)
         self.rootNeighbor = newRoot
         self.activeLinks.add(newRoot)
     
